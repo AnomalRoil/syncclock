@@ -1,32 +1,25 @@
-package syncclock
+package syncclock_test
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
 
+	"github.com/AnomalRoil/syncclock"
 	"github.com/jonboulle/clockwork"
 )
 
-// myFunc is an example of a time-dependent function, using an injected clock.
-func myFunc(clock clockwork.Clock, i *int) {
+func myFunc(clock clockwork.Clock, i *atomic.Int64) {
 	clock.Sleep(3 * time.Second)
-	*i++
+	i.Add(1)
 }
 
-// assertState is an example of a state assertion in a test.
-func assertState(t *testing.T, i, j int) {
-	if i != j {
-		t.Fatalf("i %d, j %d", i, j)
-	}
-}
-
-// TestMyFunc tests myFunc's behaviour with a FakeClock.
 func TestMyFunc(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		var i int
-		c := NewFakeClock()
+		var i atomic.Int64
+		c := syncclock.NewFakeClock()
 
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -34,20 +27,18 @@ func TestMyFunc(t *testing.T) {
 			myFunc(c, &i)
 			wg.Done()
 		}()
-
 		synctest.Wait()
 
-		// Assert the initial state.
-		assertState(t, i, 0)
+		if v := i.Load(); v != 0 {
+			t.Fatalf("expected 0, got %d", v)
+		}
 
-		// Now advance the clock forward in time.
 		c.Advance(1 * time.Hour)
-
-		// Wait until the function completes.
 		wg.Wait()
 		synctest.Wait()
 
-		// Assert the final state.
-		assertState(t, i, 1)
+		if v := i.Load(); v != 1 {
+			t.Fatalf("expected 1, got %d", v)
+		}
 	})
 }
