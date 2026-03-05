@@ -7,9 +7,17 @@ import (
 	"github.com/jonboulle/clockwork"
 )
 
+// Compile-time interface compatibility checks
 var _ clockwork.Clock = &SyncClock{}
 var _ clockwork.Ticker = &SyncTicker{}
 var _ clockwork.Timer = &SyncTimer{}
+var _ FakeClock = clockwork.NewFakeClock()
+var _ FakeClock = &SyncClock{}
+
+// FakeClock allows to retain cast-ability between both clockwork's FakeClock and SyncClock
+type FakeClock interface {
+	Advance(d time.Duration)
+}
 
 type SyncTicker struct{ *time.Ticker }
 
@@ -63,13 +71,16 @@ func (s *SyncClock) AfterFunc(d time.Duration, f func()) clockwork.Timer {
 	return &SyncTimer{time.AfterFunc(d, f)}
 }
 
+// NewFakeClock creates a FakeClock initialized at time.Now, it needs to be called
+// from within a synctest bubble.
 func NewFakeClock() *SyncClock {
 	return NewFakeClockAt(time.Now())
 }
 
-// NewFakeClockAt returns a FakeClock initialised at the given time.Time.
+// NewFakeClockAt returns a FakeClock initialised at the given time.Time, it needs
+// to be called from within a synctest bubble.
 func NewFakeClockAt(t time.Time) *SyncClock {
-	if t.Compare(time.Now()) < 0 {
+	if t.Compare(time.Date(2000, time.January, 01, 0, 0, 0, 0, time.UTC)) < 0 {
 		panic("synctest limitation: we cannot set time earlier than midnight UTC 2000-01-01")
 	}
 	time.Sleep(time.Until(t))

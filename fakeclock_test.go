@@ -6,6 +6,8 @@ import (
 	"testing"
 	"testing/synctest"
 	"time"
+
+	"github.com/jonboulle/clockwork"
 )
 
 // Use a consistent timeout across tests that block on channels. Keeps test
@@ -240,5 +242,24 @@ func TestFakeClockRace(t *testing.T) {
 		}()
 		wg.Wait()
 		synctest.Wait()
+	})
+}
+
+// TestCasting makes sure new code using our SyncClock can still pass around an old FakeClock if needed
+func TestCasting(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var fk, sk any
+		fk = clockwork.NewFakeClock()
+		sk = NewFakeClock()
+
+		if _, ok := fk.(*clockwork.FakeClock); !ok {
+			t.Fatal("cannot cast clockwork's own FakeClock as a clockwork FakeClock")
+		}
+		if _, ok := fk.(FakeClock); !ok {
+			t.Fatal("cannot cast clockwork's FakeClock as our FakeClock interface")
+		}
+		if _, ok := sk.(FakeClock); !ok {
+			t.Fatal("cannot cast our own SyncClock as our FakeClock interface")
+		}
 	})
 }
