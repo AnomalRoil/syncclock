@@ -58,6 +58,7 @@ var (
 // [SyncClock].  It allows code that only needs the Advance method to accept
 // either implementation without a type assertion.
 type FakeClock interface {
+	clockwork.Clock
 	Advance(d time.Duration)
 }
 

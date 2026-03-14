@@ -263,3 +263,19 @@ func TestCasting(t *testing.T) {
 		}
 	})
 }
+
+func TestInterfaceClock(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var clk FakeClock
+		clk = clockwork.NewFakeClock()
+		clk.Advance(time.Second)
+		if clk.Now().Unix() != time.Now().Add(time.Second).Unix() {
+			t.Fatal("clockwork advance and time+1s should match")
+		}
+		clk = NewFakeClock()
+		clk.Advance(time.Second)
+		if clk.Now().Compare(time.Now()) != 0 {
+			t.Fatal("syncclock should match with time.Now even after advancing")
+		}
+	})
+}
